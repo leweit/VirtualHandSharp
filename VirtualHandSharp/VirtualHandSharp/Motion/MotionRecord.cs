@@ -21,19 +21,27 @@ namespace VirtualHandSharp.Motion
             get { return name; }
             set { name = value.ToUpper(); }
         }
+        /// <summary>
+        /// The name of the record.
+        /// </summary>
         private string name;
-        public SequenceItem First
-        {
-            get { return sequence[0]; }
-        }
+        /// <summary>
+        /// Gets the current item (one after the last one that was matched).
+        /// </summary>
         public SequenceItem Current
         {
             get { return (current < 0) ? null : sequence[current]; }
         }
+        /// <summary>
+        /// Gets the next item.
+        /// </summary>
         public SequenceItem Next
         {
             get { return sequence[current + 1]; }
         }
+        /// <summary>
+        /// The index for the current item.
+        /// </summary>
         private int current;
 
         /// <summary>
@@ -57,12 +65,14 @@ namespace VirtualHandSharp.Motion
             // data.PositionChanged += this.HandChanged;
         }
 
-
+        /// <summary>
+        /// Initializes the record's modifiers, for each sequenceitem.
+        /// </summary>
         public void InitModifiers()
         {
             for (int i = 0; i < sequence.Count; i++)
             {
-                if (sequence[i].HasLenientModifier)
+                if (sequence[i].HasLeniencyModifier)
                     sequence[i].InitLeniency();
 
                 if (sequence[i].HasTransitionModifier)
@@ -74,7 +84,11 @@ namespace VirtualHandSharp.Motion
                 }
             }
         }
-
+        /// <summary>
+        /// Checks whether the positionrecord completes this sequence.
+        /// </summary>
+        /// <param name="current">The current position.</param>
+        /// <returns>Whether this motion has been matched.</returns>
         public bool CheckMatched(PositionRecord current)
         {
             if (current == null)
@@ -99,7 +113,10 @@ namespace VirtualHandSharp.Motion
                 return false;
             }
         }
-
+        /// <summary>
+        /// Checks whether we have reached the end of the sequence.
+        /// </summary>
+        /// <returns>Whether the end of the sequence has been reached.</returns>
         private bool checkEnd()
         {
             if (current == sequence.Count - 1)

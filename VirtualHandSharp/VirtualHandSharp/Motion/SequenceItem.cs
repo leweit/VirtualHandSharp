@@ -13,17 +13,40 @@ namespace VirtualHandSharp.Motion
     /// </summary>
     public class SequenceItem
     {
+        /// <summary>
+        /// Whether the transition modifier is enabled.
+        /// </summary>
         public bool HasTransitionModifier { get; private set; }
-        public bool HasLenientModifier { get; private set; }
-
+        /// <summary>
+        /// Whether the leniency modifier is enabled.
+        /// </summary>
+        public bool HasLeniencyModifier { get; private set; }
+        /// <summary>
+        /// The list of records that may appear in the transition from this item to the next.
+        /// </summary>
         private HashSet<PositionRecord> transition;
+        /// <summary>
+        /// The list of records that are similar to this item's record.
+        /// </summary>
         private HashSet<PositionRecord> leniency;
+        /// <summary>
+        /// Adds a position to the transition list. 
+        /// </summary>
+        /// <param name="position">The position that's part of the transition from
+        /// this position to the next.</param>
         public void AddToTransition(PositionRecord position)
         {
             transition.Add(position);
         }
-
+        /// <summary>
+        /// The position that represents this SequenceItem.
+        /// </summary>
         public PositionRecord Position { get; private set; }
+        /// <summary>
+        /// Whether a word is alphanumeric or not. Important for names.
+        /// </summary>
+        /// <param name="word">The input word.</param>
+        /// <returns>Whether the parameter is alphanumeric or not.</returns>
         private static bool isAlphanumeric(string word)
         {
             for (int i = 0; i < word.Length; i++)
@@ -33,6 +56,11 @@ namespace VirtualHandSharp.Motion
             }
             return true;
         }
+        /// <summary>
+        /// Creates a new SequenceItem from an input file token.
+        /// </summary>
+        /// <param name="token">The token, containing a positionrecord's name and some modifiers.</param>
+        /// <returns>A SequenceItem created from this token.</returns>
         public static SequenceItem FromToken(string token)
         {
             // List of modifiers that specify details about how the item can be matched.
@@ -55,10 +83,13 @@ namespace VirtualHandSharp.Motion
             rv.parseModifiers(modifiers);
             return rv;
         }
-
+        /// <summary>
+        /// Parses a list of modifiers.
+        /// </summary>
+        /// <param name="modifiers">The list of modifiers that need to be applied to this item.</param>
         private void parseModifiers(List<char> modifiers)
         {
-            HasLenientModifier = false;
+            HasLeniencyModifier = false;
             HasTransitionModifier = false;
 
             foreach (char m in modifiers)
@@ -66,13 +97,16 @@ namespace VirtualHandSharp.Motion
                 parseModifier(m);
             }
         }
-
+        /// <summary>
+        /// Parses a modifier.
+        /// </summary>
+        /// <param name="m">The modifier that needs to be applied to this item.</param>
         private void parseModifier(char m)
         {
             switch (m)
             {
                 case '*':
-                    HasLenientModifier = true;
+                    HasLeniencyModifier = true;
                     break;
                 case '~':
                     HasTransitionModifier = true;
@@ -81,10 +115,12 @@ namespace VirtualHandSharp.Motion
                     throw new MalformedException(string.Format("The modifier {0} is invalid", m));
             }
         }
-
+        /// <summary>
+        /// Configures the Leniency modifier for this item.
+        /// </summary>
         public void InitLeniency()
         {
-            if (!HasLenientModifier)
+            if (!HasLeniencyModifier)
                 throw new Exception("Trying to init leniency, but the SequenceItem is not specified to be lenient.");
             if (leniency == null)
                 leniency = new HashSet<PositionRecord>();
@@ -97,7 +133,10 @@ namespace VirtualHandSharp.Motion
                 leniency.Add(pr);
             }
         }
-
+        /// <summary>
+        /// Configures the Transition modifier for this item.
+        /// </summary>
+        /// <param name="next">The next position; required to have an end point for the transition.</param>
         public void InitTransition(HandData next)
         {
             if (!HasTransitionModifier)
@@ -130,12 +169,22 @@ namespace VirtualHandSharp.Motion
                 }
             }
         }
-
+        /// <summary>
+        /// Tells whether a character
+        /// </summary>
+        /// <param name="modifier"></param>
+        /// <returns></returns>
         private static bool isModifier(char modifier)
         {
             return (modifier == '*' || modifier == '~' /* || modifier == '!' */);
         }
-
+        /// <summary>
+        /// Compares a sequence item and a positionrecord, telling whether the 
+        /// positionrecord is part of the sequence.
+        /// </summary>
+        /// <param name="si">The sequence item.</param>
+        /// <param name="curr">The current PositionRecord.</param>
+        /// <returns>Whether the position matches this sequence item.</returns>
         public static bool operator ==(SequenceItem si, PositionRecord curr)
         {
             if (si.Position == curr)
@@ -151,14 +200,21 @@ namespace VirtualHandSharp.Motion
             }
             return false;
         }
-
-
-
+        /// <summary>
+        /// Inverts the return value of the == operator.
+        /// </summary>
+        /// <param name="si">The sequence item.</param>
+        /// <param name="curr">The current PositionRecord.</param>
+        /// <returns>True if the position does not match this sequence item.</returns>
         public static bool operator !=(SequenceItem si, PositionRecord curr)
         {
             return ! (si == curr);
         }
-
+        /// <summary>
+        /// Whether or not this position would cancel the current sequence.
+        /// </summary>
+        /// <param name="curr">The current position.</param>
+        /// <returns>Whether the sequence's progress will be cancelled by this position's occurrence.</returns>
         public bool CancelsSequence(PositionRecord curr)
         {
             if (this == curr)
@@ -172,12 +228,32 @@ namespace VirtualHandSharp.Motion
             }
             return true;
         }
-
+        /// <summary>
+        /// Creates a new SequenceItem with this name.
+        /// </summary>
+        /// <param name="name">The new sequenceitem's name.</param>
         private SequenceItem(string name)
         {
             Position = PositionParser.GetByName(name);
             transition = new HashSet<PositionRecord>();
             leniency = new HashSet<PositionRecord>();
+        }
+        /// <summary>
+        /// Whether this item equals the other.
+        /// </summary>
+        /// <param name="obj">Other item.</param>
+        /// <returns>Whether the two items are equal.</returns>
+        public override bool Equals(object obj)
+        {
+            return base.Equals(obj);
+        }
+        /// <summary>
+        /// Gets the item's hashcode.
+        /// </summary>
+        /// <returns>The item's hashcode.</returns>
+        public override int GetHashCode()
+        {
+            return base.GetHashCode();
         }
     }
 }

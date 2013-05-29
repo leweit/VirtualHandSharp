@@ -15,15 +15,22 @@ namespace TestProgram
     /// </summary>
     class Program
     {
+        /// <summary>
+        /// Whether to use an emulator (true) or the actual hand.
+        /// </summary>
         private static bool emulating = true;
         /// <summary>
         /// The path to the positions file.
         /// </summary>
-        private static string POSITIONS = "positions.txt";
+        private static string POSITIONS;
         /// <summary>
         /// The path to the motions file.
         /// </summary>
-        private static string MOTIONS = "motion.txt";
+        private static string MOTIONS;
+        /// <summary>
+        /// The path to the mock file.
+        /// </summary>
+        private static string MOCK;
         /// <summary>
         /// The hand.
         /// </summary>
@@ -42,13 +49,14 @@ namespace TestProgram
         /// <param name="args">Command line arguments.</param>
         static void Main(string[] args)
         {
+            initSettings();
             PositionRecord pr = new PositionRecord(null);
             try
             {
                 // Make a new hand object that we will be using throughout this program.
                 if (emulating)
                 {
-                    hand = new HandEmulator("mock.txt", true);
+                    hand = new HandEmulator(MOCK, true);
                 }
                 else
                 {
@@ -58,7 +66,6 @@ namespace TestProgram
                 hand.PositionChanged += positionChanged;
                 hand.MotionDetected += MotionDetected;
                 Console.WriteLine("Initialisation went fine.");
-
             }
             catch (ConnectionFailedException e)
             {
@@ -109,6 +116,14 @@ namespace TestProgram
             } while (input != "q!" && result);
         }
 
+        private static void initSettings()
+        {
+            IniFile ini = new IniFile("./TestSettings.ini");
+            POSITIONS = ini.IniReadValue("input", "position");
+            MOTIONS = ini.IniReadValue("input", "motion");
+            MOCK = ini.IniReadValue("input", "mock");
+        }
+
         public static void MotionDetected(Hand sender, MotionRecord motion)
         {
             Console.WriteLine("Motion detected: {0}", motion.Name);
@@ -123,7 +138,7 @@ namespace TestProgram
             Console.WriteLine("Unknown command. Known commands:");
             foreach (string key in commandParser.Keys)
             {
-                Console.WriteLine("  {0,-4}: {1}", key, help[key]);
+                Console.WriteLine("  {0,-"+"toggleunit".Length+"}: {1}", key, help[key]);
             }
         }
         /// <summary>
@@ -198,6 +213,11 @@ namespace TestProgram
             }
             return true;
         }
+        /// <summary>
+        /// Creates a PositionRecord.
+        /// </summary>
+        /// <param name="p">Parameter, should be the name of the new record.</param>
+        /// <returns></returns>
         private static bool record(string p)
         {
             try
@@ -273,7 +293,6 @@ namespace TestProgram
                 }
             } while (true);
         }
-
         /// <summary>
         /// Initiates the parser.
         /// </summary>
@@ -284,30 +303,27 @@ namespace TestProgram
             help = new Dictionary<string, string>();
 
             commandParser["emake"] = makeEmulationRecord;
-            commandParser["eplay"] = makeEmulationRecord;
-            commandParser["i"] = setInterval;
-            commandParser["p"] = poll;
-            commandParser["p1"] = beginPolling;
-            commandParser["p0"] = stopPolling;
+            commandParser["interval"] = setInterval;
+            commandParser["poll"] = poll;
+            commandParser["pstart"] = beginPolling;
+            commandParser["pstop"] = stopPolling;
             commandParser["q!"] = exitAfterKeyPress;
-            commandParser["r"] = record;
-            commandParser["tu"] = switchUnit;
-            commandParser["t"] = timer;
+            commandParser["record"] = record;
+            commandParser["timer"] = timer;
+            commandParser["toggleunit"] = switchUnit;
 
             help["emake"] = "Makes an emulation record.";
-            help["eplay"] = "Replays an emulation record.";
-            help["i"] = "Requires one integer argument. Sets the hand's refresh interval to n milliseconds.";
-            help["p"] = "Tells the hand to poll for data, then prints the hand's debug info.";
-            help["p1"] = "Tells the hand to start polling for data.";
-            help["p0"] = "Tells the hand to stop polling for data.";
+            help["interval"] = "Requires one integer argument. Sets the hand's refresh interval to n milliseconds.";
+            help["poll"] = "Tells the hand to poll for data, then prints the hand's debug info.";
+            help["pstart"] = "Tells the hand to start polling for data.";
+            help["pstop"] = "Tells the hand to stop polling for data.";
             help["q!"] = "Quits the program.";
-            help["r"] = "Records a hand position. Takes one string argument that will be the record's name.";
-            help["tu"] = "Toggles the unit that angles will be returned in. (Radians vs Degrees)";
-            help["t"] = "Requires one integer argument. Does a speedtest on n updates.";
+            help["record"] = "Records a hand position. Takes one string argument that will be the record's name.";
+            help["timer"] = "Requires one integer argument. Does a speedtest on n updates.";
+            help["toggleunit"] = "Toggles the unit that angles will be returned in. (Radians vs Degrees)";
 
             return true;
         }
-
         /// <summary>
         /// Sets the hand's refresh interval to a number given as parameter.
         /// </summary>
@@ -338,7 +354,6 @@ namespace TestProgram
                 return false;
             }
         }
-
         /// <summary>
         /// Exits the application once a key has been pressed.
         /// </summary>
@@ -350,13 +365,16 @@ namespace TestProgram
             Environment.Exit(0);
             return true;
         }
-
+        /// <summary>
+        /// Handler for the hand's PositionChanged event.
+        /// </summary>
+        /// <param name="sender">The hand whose position has changed.</param>
+        /// <param name="position"></param>
         private static void positionChanged(Hand sender, PositionRecord position)
         {
             if (position.Standalone)
                 Console.WriteLine("New position: {0}", position.Name);
         }
-
         /// <summary>
         /// Makes the hand vibrate.
         /// </summary>
@@ -415,7 +433,11 @@ namespace TestProgram
                 return false;
             }
         }
-
+        /// <summary>
+        /// Creates an emulator record file. Path is the file to use.
+        /// </summary>
+        /// <param name="p"></param>
+        /// <returns></returns>
         private static bool makeEmulationRecord(string p)
         {
             try
@@ -424,7 +446,7 @@ namespace TestProgram
                 {
                     return false;
                 }
-                Recorder he = new Recorder(hand, 1, p);
+                Recorder he = new Recorder(hand, 24, p);
                 Console.WriteLine("Press any key to start...");
                 Console.ReadKey(false);
                 he.Start();
@@ -439,16 +461,6 @@ namespace TestProgram
                 return false;
             }
         }
-
-        private static bool playEmulationRecord(string p)
-        {
-            if (p == null || p == "")
-            {
-                return false;
-            }
-            return true;
-        }
-
         /// <summary>
         /// Event handler for the hand's HandGrasped event.
         /// </summary>

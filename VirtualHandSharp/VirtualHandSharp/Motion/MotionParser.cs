@@ -135,13 +135,17 @@ namespace VirtualHandSharp.Motion
                 mr.CheckMatched(needle);
             }
         }
-
-        public static List<MotionRecord> GetMatches(PositionRecord needle)
+        /// <summary>
+        /// Checks for matches based on the current PositionRecord.
+        /// </summary>
+        /// <param name="curr">The current PositionRecord</param>
+        /// <returns>A list of all MotionRecords that have been matched.</returns>
+        public static List<MotionRecord> GetMatches(PositionRecord curr)
         {
             List<MotionRecord> rv = new List<MotionRecord>();
             foreach (MotionRecord mr in records.Values)
             {
-                if (mr.CheckMatched(needle))
+                if (mr.CheckMatched(curr))
                     rv.Add(mr);
             }
             return rv;

@@ -288,15 +288,8 @@ namespace VirtualHandSharp
             double[] arr = new double[max];
             // Poll() fills arr with data and returns the size of the new array.
             // If that size is not 22, something weird is going on.
-            try
-            {
-                int size = Poll(this.vhtHand, arr, max);
-            }
-            catch (SEHException e)
-            {
-                StopPolling();
-                return;
-            }
+            int size = Poll(this.vhtHand, arr, max);
+            StopPolling();
             // Fill the hand with data.
             Populate(arr);
             // Update the position.

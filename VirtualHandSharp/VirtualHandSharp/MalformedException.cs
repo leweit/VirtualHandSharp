@@ -18,7 +18,9 @@ namespace VirtualHandSharp
         /// Specifies the number of the line on which the error occurred.
         /// </summary>
         public readonly int LineNumber;
-
+        /// <summary>
+        /// The error message, including the line number.
+        /// </summary>
         public override string Message
         {
             get
@@ -26,7 +28,12 @@ namespace VirtualHandSharp
                 return base.Message + (LineNumber >= 0 ? " (line " + LineNumber + ")" : "");
             }
         }
-
+        /// <summary>
+        /// Creates a custom MalformedException.
+        /// </summary>
+        /// <param name="message">The error message.</param>
+        /// <param name="path">The input file's path.</param>
+        /// <param name="lineNumber">The number of the line on which the error occurred.</param>
         public MalformedException(string message, string path, int lineNumber)
             : base(message)
         {

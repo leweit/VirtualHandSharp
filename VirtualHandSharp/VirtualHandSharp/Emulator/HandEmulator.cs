@@ -8,13 +8,40 @@ using VirtualHandSharp.Motion;
 using System.IO;
 namespace VirtualHandSharp.Emulator
 {
+    /// <summary>
+    /// This class can emulate a CyberGlove by replaying a record created by 
+    /// Emulator.Recorder. 
+    /// </summary>
     public class HandEmulator : Hand
     {
+        #region Members
+        /// <summary>
+        /// The emulator's sequence of handdata.
+        /// </summary>
         private List<HandData> sequence;
+        /// <summary>
+        /// The current position of playback.
+        /// </summary>
         private int currentPos;
+        #endregion
+        #region Properties
+        /// <summary>
+        /// The path to the input file which contains the data sequence.
+        /// </summary>
         public string InputPath { get; private set; }
+        /// <summary>
+        /// Whether the hand should continue from the start after reaching the last position.
+        /// If false, it will stop polling once it has reached the end.
+        /// </summary>
         public bool Recur;
-        public HandEmulator(string path, bool recur)
+        #endregion
+        #region Public Functions
+        /// <summary>
+        /// Creates a HandEmulator. The input file will also be read immediately.
+        /// </summary>
+        /// <param name="path">The path to the input file.</param>
+        /// <param name="recur">Whether the emulation should repeat itself after it has ended.</param>
+        public HandEmulator(string path, bool recur = true)
             : base(false)
         {
             InputPath = path;
@@ -23,24 +50,12 @@ namespace VirtualHandSharp.Emulator
             sequence = new List<HandData>();
             readSequence();
         }
-
-        private void readSequence()
-        {
-            if (!File.Exists(InputPath)) return;
-            StreamReader reader = new StreamReader(InputPath);
-            string line;
-            HandData item;
-            while (reader.Peek() != -1)
-            {
-                line = reader.ReadLine();
-                item = new HandData();
-                item.Populate(line);
-                sequence.Add(item);
-            }
-            reader.Close();
-            reader.Dispose();
-        }
-
+        #endregion
+        #region Protected Functions
+        /// <summary>
+        /// Polls for updated data. Because this is an emulator, the next line in the
+        /// record will be used.
+        /// </summary>
         protected override void pollJointData()
         {
             // Clone the current item into this hand, and increase the index
@@ -64,10 +79,34 @@ namespace VirtualHandSharp.Emulator
             }
             CurrentPosition = pr;
             DataHasUpdated(this);
-
+            // Check whether we need to stop polling now.
             checkIfEnded();
         }
-
+        #endregion
+        #region Private Functions
+        /// <summary>
+        /// Reads the input file specified by InputPath.
+        /// </summary>
+        private void readSequence()
+        {
+            if (!File.Exists(InputPath)) return;
+            StreamReader reader = new StreamReader(InputPath);
+            string line;
+            HandData item;
+            while (reader.Peek() != -1)
+            {
+                line = reader.ReadLine();
+                item = new HandData();
+                item.Populate(line);
+                sequence.Add(item);
+            }
+            reader.Close();
+            reader.Dispose();
+        }
+        /// <summary>
+        /// Checks whether the end of the record has been reached. It then resets the 
+        /// position or stops polling, depending on the Recur property.
+        /// </summary>
         private void checkIfEnded()
         {
             if (currentPos >= sequence.Count)
@@ -78,5 +117,6 @@ namespace VirtualHandSharp.Emulator
                     currentPos = 0;
             }
         }
+        #endregion
     }
 }
