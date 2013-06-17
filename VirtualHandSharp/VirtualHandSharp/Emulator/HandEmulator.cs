@@ -65,11 +65,19 @@ namespace VirtualHandSharp.Emulator
         public HandEmulator(string path, bool recur = true)
             : base(false)
         {
-            InputPath = path;
-            Recur = recur;
-            currentPos = 0;
-            sequence = new List<HandData>();
-            readSequence();
+            try
+            {
+                InputPath = path;
+                Recur = recur;
+                // Reset the current position.
+                currentPos = 0;
+                sequence = new List<HandData>();
+                readSequence();
+            }
+            catch
+            {
+                throw;
+            }
         }
         #endregion
         #region Protected Functions
@@ -110,17 +118,25 @@ namespace VirtualHandSharp.Emulator
         /// </summary>
         private void readSequence()
         {
-            if (!File.Exists(InputPath)) return;
+            // Can't do anything if the file doesn't exist.
+            if (!File.Exists(InputPath)) 
+                throw new FileNotFoundException("The specified mock file does not exist.", InputPath);
+            
+            // Open a reader.
             StreamReader reader = new StreamReader(InputPath);
-            string line;
-            HandData item;
+            // Make a line, the item that will be read, and the lineNumber, which
+            // will be used for error reports if there are any.
+            string line; HandData item; int lineNumber = 0;
             while (reader.Peek() != -1)
             {
+                lineNumber++;
                 line = reader.ReadLine();
                 item = new HandData();
                 item.Populate(line);
                 sequence.Add(item);
             }
+            if (sequence.Count == 0)
+                throw new MalformedException("The mock emulation file did not contain any valid data.");
             reader.Close();
             reader.Dispose();
         }

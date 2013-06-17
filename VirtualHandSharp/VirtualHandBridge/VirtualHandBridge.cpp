@@ -21,12 +21,12 @@
 // VirtualHandBridge.cpp : Defines the exported functions for the DLL application.
 //
 
-#include "stdafx.h"
+#include"stdafx.h"
 #include"Hand.h"
 #include<string>
 #include<comutil.h>
-#include "VirtualHandBridge.h"
-#include <iostream>
+#include"VirtualHandBridge.h"
+#include<iostream>
 #include<vhtBadLogic.h>
 
 // Creates a new hand and returns a pointer to it.

@@ -54,27 +54,32 @@ namespace VirtualHandSharp.Emulator
         /// Creates a custom recorder.
         /// </summary>
         /// <param name="hand">The connected hand.</param>
-        /// <param name="frequency">The refresh rate per second.</param>
+        /// <param name="fps">The refresh rate per second.</param>
         /// <param name="outputPath">The path to the output file. This file will be overwritten.</param>
-        public Recorder(Hand hand, int frequency, string outputPath)
+        public Recorder(Hand hand, int fps, string outputPath)
         {
-            if (frequency < 1 || 1000 < frequency)
+            // The FPS has to be between 1 and 1000
+            if (fps < 1 || 1000 < fps)
             {
                 throw new ArgumentException("Frequency should be between 1 and 1000", "frequency");
             }
+            // Initialise the sequence, set members
+            OutputPath = outputPath;
             sequence = new List<HandData>();
+            // Connect the hand, make it stop polling.
             this.hand = hand;
             this.hand.StopPolling();
-            OutputPath = outputPath;
-
-            pollTimer = new Timer(pollTimerTick, null, 0, 1000 / frequency);
+            // Make a timer which tell the hand when to poll, instead.
+            pollTimer = new Timer(pollTimerTick, null, 0, 1000 / fps);
         }
         /// <summary>
-        /// The handler for the Timer's ticks. Will update hand data and write it to the sequence.
+        /// The handler for the Timer's ticks. Will update hand data and 
+        /// write it to the sequence.
         /// </summary>
-        /// <param name="state"></param>
+        /// <param name="state">The timer's state.</param>
         private void pollTimerTick(object state)
         {
+            // Update the hand's data.
             hand.Update();
         }
         /// <summary>
@@ -82,8 +87,8 @@ namespace VirtualHandSharp.Emulator
         /// </summary>
         public void Start()
         {
+            // Hook into the update event.
             hand.DataUpdated += DataUpdated;
-            hand.StartPolling();
         }
         /// <summary>
         /// Event handler for the DataUpdated event; This will add the new data to the
@@ -92,11 +97,14 @@ namespace VirtualHandSharp.Emulator
         /// <param name="sender">The hand that got updated.</param>
         public void DataUpdated(Hand sender)
         {
+            // Make a new container for the data.
             HandData data = new HandData();
+            // Populate the container.
             for (int i = 0; i < 22; i++)
             {
                 data[i].Value = sender[i].Radians;
             }
+            // Add the new HandData to the sequence list.
             sequence.Add(data);
         }
         /// <summary>
@@ -105,21 +113,25 @@ namespace VirtualHandSharp.Emulator
         /// </summary>
         public void Stop()
         {
+            // Unhook from the DataUpdated event.
             hand.DataUpdated -= DataUpdated;
+            // Write the sequence down.
             writeToFile();
-            
         }
         /// <summary>
         /// Writes the sequence to the output file.
         /// </summary>
         private void writeToFile()
         {
-            File.Create(OutputPath).Close();
-            StreamWriter file = new StreamWriter(OutputPath);
+            // Create the file and make the streamwriter. We use Create because 
+            // the file will be overwritten.
+            StreamWriter file = new StreamWriter(File.Create(OutputPath));
+            // Write each record to the file.
             foreach (HandData record in sequence)
             {
                 file.WriteLine(record.CSV);
             }
+            // Destroy the streamreader.
             file.Close();
             file.Dispose();
         }

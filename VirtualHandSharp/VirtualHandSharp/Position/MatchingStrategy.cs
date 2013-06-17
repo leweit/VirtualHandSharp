@@ -20,37 +20,23 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
-namespace VirtualHandSharp
+namespace VirtualHandSharp.Position
 {
     /// <summary>
-    /// Represents a finger, and allows for CyberGlove's joint data to be 
-    /// saved in Angle objects (Inner, Middle and Outer) that are read-only.
+    /// Matching strategy.
     /// </summary>
-    public class Finger : FingerData
+    public interface MatchingStrategy
     {
-        #region Properties
         /// <summary>
-        /// Returns a debug string, containing the joints' data.
+        /// Compares two handdatas and tells whether they match.
         /// </summary>
-        public string DebugString
-        {
-            get
-            {
-                return Inner.Value + ", " + Middle.Value + ", " + Outer.Value +
-                    (NextAbduction == null ? "" : (", " + NextAbduction.Value));
-            }
-        }
-        #endregion
-        #region Public Functions
-        /// <summary>
-        /// Default constructor.
-        /// </summary>
-        /// <param name="id">The index of the finger. Thumb is 0, index is 1, etc.</param>
-        public Finger(int id) : base(id)
-        {
-        }
-        #endregion
+        /// <param name="position">The position that should be matched.</param>
+        /// <param name="current">The current data.</param>
+        /// <param name="tollerance">Tollerance tells how much it is allowed to deviate from the expectations.</param>
+        /// <returns>Whether the data matches.</returns>
+        bool AreSimilar(PositionRecord position, HandData current, double tollerance = 0);
     }
 }

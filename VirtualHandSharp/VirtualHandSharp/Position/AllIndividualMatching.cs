@@ -20,37 +20,45 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
-namespace VirtualHandSharp
+namespace VirtualHandSharp.Position
 {
     /// <summary>
-    /// Represents a finger, and allows for CyberGlove's joint data to be 
-    /// saved in Angle objects (Inner, Middle and Outer) that are read-only.
+    /// Compares by matching all angles separately.
     /// </summary>
-    public class Finger : FingerData
+    public class AllIndividualMatching : MatchingStrategy
     {
-        #region Properties
         /// <summary>
-        /// Returns a debug string, containing the joints' data.
+        /// If this one is higher, it will be easier to match stuff.
         /// </summary>
-        public string DebugString
+        public static double TOLLERANCE { get; set; }
+        /// <summary>
+        /// Static constructor.
+        /// </summary>
+        static AllIndividualMatching()
         {
-            get
+            TOLLERANCE = 1.0;
+        }
+        /// <summary>
+        /// Compares two handdatas and tells whether they match.
+        /// </summary>
+        /// <param name="position">The position that should be matched.</param>
+        /// <param name="current">The current data.</param>
+        /// <returns>Whether the data matches.</returns>
+        public bool AreSimilar(PositionRecord position, HandData current, double tollerance = 0)
+        {
+            tollerance = tollerance > 0 ? tollerance : TOLLERANCE;
+            int max = (int)HandData.Joint.MAX;
+            for (int i = 0; i < max; i++)
             {
-                return Inner.Value + ", " + Middle.Value + ", " + Outer.Value +
-                    (NextAbduction == null ? "" : (", " + NextAbduction.Value));
+                if (position.Ignored[i])
+                    continue;
+                else if (!position[i].IsSimilar(current[i], tollerance))
+                    return false;
             }
+            return true;
         }
-        #endregion
-        #region Public Functions
-        /// <summary>
-        /// Default constructor.
-        /// </summary>
-        /// <param name="id">The index of the finger. Thumb is 0, index is 1, etc.</param>
-        public Finger(int id) : base(id)
-        {
-        }
-        #endregion
     }
 }

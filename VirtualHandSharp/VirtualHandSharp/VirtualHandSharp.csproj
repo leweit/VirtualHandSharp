@@ -79,7 +79,7 @@
     <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
     <CodeAnalysisRuleDirectories>;c:\Program Files (x86)\Microsoft Visual Studio 10.0\Team Tools\Static Analysis Tools\FxCop\\Rules</CodeAnalysisRuleDirectories>
     <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
-    <DocumentationFile>..\x64\Release\VirtualHandSharp.XML</DocumentationFile>
+    <DocumentationFile>..\VirtualHandSharp.XML</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject />
@@ -108,8 +108,11 @@
     <Compile Include="Motion\MotionParser.cs" />
     <Compile Include="Motion\MotionRecord.cs" />
     <Compile Include="Motion\SequenceItem.cs" />
+    <Compile Include="Position\AllIndividualMatching.cs" />
+    <Compile Include="Position\MatchingStrategy.cs" />
     <Compile Include="Position\PositionParser.cs" />
     <Compile Include="Position\PositionRecord.cs" />
+    <Compile Include="Position\RmsdMatching.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

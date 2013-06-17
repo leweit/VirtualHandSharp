@@ -34,6 +34,16 @@ namespace VirtualHandSharp.Motion
     /// </summary>
     public class MotionParser
     {
+        /// <summary>
+        /// Static constructor.
+        /// </summary>
+        static MotionParser()
+        {
+            records = new Dictionary<string, MotionRecord>();
+        }
+        /// <summary>
+        /// The list of saved MotionRecords.
+        /// </summary>
         private static Dictionary<string, MotionRecord> records;
         /// <summary>
         /// Adds a record to the list of known records.
@@ -62,7 +72,6 @@ namespace VirtualHandSharp.Motion
         /// <param name="path">The path to the input file.</param>
         public MotionParser(string path)
         {
-            records = new Dictionary<string, MotionRecord>();
             Path = path;
         }
         private string read(StreamReader reader, ref int lineNumber)
@@ -107,6 +116,10 @@ namespace VirtualHandSharp.Motion
             catch (MalformedException e)
             {
                 // Add linenumber and path to the exception.
+                throw new MalformedException(e.Message, Path, lineNumber);
+            }
+            catch (KeyNotFoundException e)
+            {
                 throw new MalformedException(e.Message, Path, lineNumber);
             }
             catch (Exception e)

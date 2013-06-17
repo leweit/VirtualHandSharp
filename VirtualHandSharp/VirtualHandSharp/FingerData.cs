@@ -119,7 +119,6 @@ namespace VirtualHandSharp
         /// <param name="inner">The inner joint's angle data.</param>
         /// <param name="middle">The middle joint's angle data.</param>
         /// <param name="outer">The outer joint's angle data.</param>
-        /// <author>Arno Sluismans</author>
         public void SetJoints(double inner, double middle, double outer)
         {
             // Set the inner joint

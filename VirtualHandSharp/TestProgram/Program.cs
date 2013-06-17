@@ -37,9 +37,49 @@ namespace TestProgram
     class Program
     {
         /// <summary>
+        /// The TestSettings.ini path.
+        /// </summary>
+        private static string SETTINGSPATH = "./TestSettings.ini";
+        /// <summary>
+        /// The command for polling once.
+        /// </summary>
+        private static string POLL = "p";
+        /// <summary>
+        /// The command for starting to poll.
+        /// </summary>
+        private static string STARTPOLLING = "p1";
+        /// <summary>
+        /// The command to stop polling.
+        /// </summary>
+        private static string STOPPOLLING = "p0";
+        /// <summary>
+        /// The command to create a new emulation record.
+        /// </summary>
+        private static string MAKEEMULATION = "e";
+        /// <summary>
+        /// The command to quit.
+        /// </summary>
+        private static string QUIT = "q!";
+        /// <summary>
+        /// The command to create a new position record.
+        /// </summary>
+        private static string RECORD = "r";
+        /// <summary>
+        /// The command to do a speedtest.
+        /// </summary>
+        private static string TIMER = "t";
+        /// <summary>
+        /// The command to toggle the current angle unit.
+        /// </summary>
+        private static string TOGGLEUNIT = "tu";
+        /// <summary>
+        /// The command to set the refresh interval.
+        /// </summary>
+        private static string INTERVAL = "i";
+        /// <summary>
         /// Whether to use an emulator (true) or the actual hand.
         /// </summary>
-        private static bool emulating = false;
+        private static bool emulating = true;
         /// <summary>
         /// The path to the positions file.
         /// </summary>
@@ -70,37 +110,35 @@ namespace TestProgram
         /// <param name="args">Command line arguments.</param>
         static void Main(string[] args)
         {
+            // Read TestSettings.ini first.
             initSettings();
-            PositionRecord pr = new PositionRecord(null);
             try
             {
                 // Make a new hand object that we will be using throughout this program.
-                if (emulating)
-                {
-                    hand = new HandEmulator(MOCK, true);
-                }
-                else
-                {
-                    hand = new Hand();
-                }
-                hand.Interval = 10;
+                // This can either be an emulated one or an actual object.
+                hand = emulating ? new HandEmulator(MOCK) : new Hand();
+                // Make the hand poll 24 times per second.
+                hand.FPS = 24;
+                // Add event handlers to the position and motion events.
                 hand.PositionChanged += positionChanged;
                 hand.MotionDetected += MotionDetected;
                 Console.WriteLine("Initialisation went fine.");
             }
             catch (ConnectionFailedException e)
             {
+                // In connection can't be made, so not much can be done.
+                // Exit time!
                 Console.WriteLine(e.Message);
-                Console.Read();
+                Console.ReadKey(true);
                 return;
             }
             try
             {
-                // Parse the positions.txt file's contents.
+                // Parse the positions file's contents and print a debugstring.
                 PositionParser positionParser = new PositionParser(POSITIONS);
                 positionParser.Parse();
                 Console.WriteLine(positionParser.DebugString);
-
+                // Parse the motions file.
                 MotionParser motionParser = new MotionParser(MOTIONS);
                 motionParser.Parse();
             }
@@ -113,36 +151,48 @@ namespace TestProgram
                 Console.WriteLine("MalformedException in {0}: {1}", e.Path, e.Message);
             }
 
+            // Begin the main part of the program. First create the input
+            // command parser.
             initCommandParser();
 
+            // Ask for input.
             Console.Write(">>> ");
             string input = Console.ReadLine();
             string cmd = null;
-            bool result = true;
+
             do
             {
-                string[] para = input.Split(new char[] { ' ' }, 2);
-                cmd = para[0];
+                // After the first space, some parameters may follow. Separate the input
+                // in the command, and the parameters.
+                string[] parts = input.Split(new char[] { ' ' }, 2);
+                cmd = parts[0];
                 if (commandParser.ContainsKey(cmd))
                 {
-                    bool rv = (bool)commandParser[cmd].DynamicInvoke(para.Length > 1 ? para[1] : "");
+                    // Invoke the function represented by this command.
+                    bool rv = (bool)commandParser[cmd].DynamicInvoke(parts.Length > 1 ? parts[1] : "");
+                    // Based on the function's return value, give some feedback.
                     Console.WriteLine("Command exited " + (rv ? "without" : "with") + " errors.");
                 }
                 else
                 {
+                    // Give the user some feedback about the list of existing commands.
                     unknownCommand();
                 }
+                // Read next input command.
                 Console.Write(">>> ");
                 input = Console.ReadLine();
-            } while (input != "q!" && result);
+            } while (true);
         }
-
+        /// <summary>
+        /// Reads the input files from TestSettings.ini.
+        /// </summary>
         private static void initSettings()
         {
-            IniFile ini = new IniFile("./TestSettings.ini");
+            IniFile ini = new IniFile(SETTINGSPATH);
             POSITIONS = ini.IniReadValue("input", "position");
             MOTIONS = ini.IniReadValue("input", "motion");
             MOCK = ini.IniReadValue("input", "mock");
+            emulating = Boolean.Parse(ini.IniReadValue("emulator", "enable"));
         }
 
         public static void MotionDetected(Hand sender, MotionRecord motion)
@@ -159,7 +209,7 @@ namespace TestProgram
             Console.WriteLine("Unknown command. Known commands:");
             foreach (string key in commandParser.Keys)
             {
-                Console.WriteLine("  {0,-"+"toggleunit".Length+"}: {1}", key, help[key]);
+                Console.WriteLine("  {0,-5}: {1}", key, help[key]);
             }
         }
         /// <summary>
@@ -320,29 +370,31 @@ namespace TestProgram
         /// <returns>Whether the function executed without errors.</returns>
         private static bool initCommandParser()
         {
+            // Make a dictionary of strings and pointers. The strings are
+            // the commands thatwill be entered by the user.
             commandParser = new Dictionary<string, Func<string, bool>>();
+            commandParser[MAKEEMULATION] = makeEmulationRecord;
+            commandParser[INTERVAL] = setInterval;
+            commandParser[POLL] = poll;
+            commandParser[STARTPOLLING] = beginPolling;
+            commandParser[STOPPOLLING] = stopPolling;
+            commandParser[QUIT] = exitAfterKeyPress;
+            commandParser[RECORD] = record;
+            commandParser[TIMER] = timer;
+            commandParser[TOGGLEUNIT] = switchUnit;
+
+            // Also make a list of helpful explanations for each command.
             help = new Dictionary<string, string>();
-
-            commandParser["emake"] = makeEmulationRecord;
-            commandParser["interval"] = setInterval;
-            commandParser["poll"] = poll;
-            commandParser["pstart"] = beginPolling;
-            commandParser["pstop"] = stopPolling;
-            commandParser["q!"] = exitAfterKeyPress;
-            commandParser["record"] = record;
-            commandParser["timer"] = timer;
-            commandParser["toggleunit"] = switchUnit;
-
-            help["emake"] = "Makes an emulation record.";
-            help["interval"] = "Requires one integer argument. Sets the hand's refresh interval to n milliseconds.";
-            help["poll"] = "Tells the hand to poll for data, then prints the hand's debug info.";
-            help["pstart"] = "Tells the hand to start polling for data.";
-            help["pstop"] = "Tells the hand to stop polling for data.";
-            help["q!"] = "Quits the program.";
-            help["record"] = "Records a hand position. Takes one string argument that will be the record's name.";
-            help["timer"] = "Requires one integer argument. Does a speedtest on n updates.";
-            help["toggleunit"] = "Toggles the unit that angles will be returned in. (Radians vs Degrees)";
-
+            help[MAKEEMULATION] = "Makes an emulation record.";
+            help[INTERVAL] = "Requires one integer argument. Sets the hand's refresh interval to n milliseconds.";
+            help[POLL] = "Tells the hand to poll for data, then prints the hand's debug info.";
+            help[STARTPOLLING] = "Tells the hand to start polling for data.";
+            help[STOPPOLLING] = "Tells the hand to stop polling for data.";
+            help[QUIT] = "Quits the program.";
+            help[RECORD] = "Records a hand position. Takes one string argument that will be the record's name.";
+            help[TIMER] = "Requires one integer argument. Does a speedtest on n updates.";
+            help[TOGGLEUNIT] = "Toggles the unit that angles will be returned in. (Radians vs Degrees)";
+            
             return true;
         }
         /// <summary>
@@ -378,19 +430,20 @@ namespace TestProgram
         /// <summary>
         /// Exits the application once a key has been pressed.
         /// </summary>
-        /// <author>Arno Sluismans</author>
         private static bool exitAfterKeyPress(string p)
         {
+            if (hand != null) hand.StopPolling();
             Console.WriteLine("Quitting. Press any key to exit...");
             Console.ReadKey();
             Environment.Exit(0);
+
             return true;
         }
         /// <summary>
         /// Handler for the hand's PositionChanged event.
         /// </summary>
         /// <param name="sender">The hand whose position has changed.</param>
-        /// <param name="position"></param>
+        /// <param name="position">The newly matched position.</param>
         private static void positionChanged(Hand sender, PositionRecord position)
         {
             if (position.Standalone)
@@ -428,6 +481,7 @@ namespace TestProgram
             try
             {
                 hand.StartPolling();
+                Console.WriteLine("Polling!");
                 return true;
             }
             catch (NullReferenceException)
@@ -446,6 +500,7 @@ namespace TestProgram
             try
             {
                 hand.StopPolling();
+                Console.WriteLine("Not polling anymore.");
                 return true;
             }
             catch (NullReferenceException)
@@ -469,10 +524,10 @@ namespace TestProgram
                 }
                 Recorder he = new Recorder(hand, 24, p);
                 Console.WriteLine("Press any key to start...");
-                Console.ReadKey(false);
+                Console.ReadKey(true);
                 he.Start();
                 Console.WriteLine("Press any key to stop...");
-                Console.ReadKey(false);
+                Console.ReadKey(true);
                 he.Stop();
                 return true;
             }
@@ -481,24 +536,6 @@ namespace TestProgram
                 Console.WriteLine(e.Message);
                 return false;
             }
-        }
-        /// <summary>
-        /// Event handler for the hand's HandGrasped event.
-        /// </summary>
-        /// <param name="sender">The event's sender.</param>
-        /// <param name="e">Event arguments.</param>
-        public static void HasGrasped(object sender, EventArgs e)
-        {
-            Console.WriteLine("Grasped!");
-        }
-        /// <summary>
-        /// Event handler for the hand's HandReleased event.
-        /// </summary>
-        /// <param name="sender">The event's sender.</param>
-        /// <param name="e">Event arguments.</param>
-        public static void HasReleased(object sender, EventArgs e)
-        {
-            Console.WriteLine("Released!");
         }
     }
 }

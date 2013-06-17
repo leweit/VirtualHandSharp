@@ -161,7 +161,6 @@ namespace VirtualHandSharp
         /// are respectively stretched or bent. It also returns said fingers' respective debug strings, which
         /// include the joints' data.
         /// </summary>
-        /// <author>Arno Sluismans</author>
         public string DebugString
         {
             get
@@ -391,15 +390,16 @@ namespace VirtualHandSharp
         /// <param name="sep">The separator. : by default.</param>
         public virtual void Populate(string csv, char sep = ':' )
         {
+            int max = NR_FINGERS * NR_JOINTS + 2;
+            // Split the CSV.
             string[] tokens = csv.Split(sep);
-            for (int i = 0; i < 22; i++)
-            {
+            // A csv with not exactly 22 values would be invalid.
+            if (tokens.Length != max)
+                throw new ArgumentException("The csv did not contain exactly 22 values.");
+            // Populate the parsed data.
+            for (int i = 0; i < max; i++)
                 this[i].Value = Double.Parse(tokens[i].Trim());
-            }
         }
-        #endregion
-        #region Private functions
-        
         #endregion
     }
 }

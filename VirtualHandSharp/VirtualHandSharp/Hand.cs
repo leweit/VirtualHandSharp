@@ -43,7 +43,6 @@ namespace VirtualHandSharp
     /// at a set interval. The finger objects can either be accessed by their names (thumb, index, etc)
     /// or through the "fingers" array, which is thumb-indexed (meaning thumb's index is 0, pinkie's index is 4, etc).
     /// </summary>
-    /// <author>Arno Sluismans</author>
     public class Hand : HandData
     {
         #region Members
@@ -51,7 +50,6 @@ namespace VirtualHandSharp
         /// The interval at which we want the hand's data to be refreshed. (Expressed in milliseconds).
         /// This property is write-only.
         /// </summary>
-        /// <author>Arno Sluismans</author>
         public int Interval
         {
             set
@@ -69,6 +67,16 @@ namespace VirtualHandSharp
             }
         }
         private int interval;
+        /// <summary>
+        /// Sets the hand's refresh rate per second.
+        /// </summary>
+        public int FPS
+        {
+            set
+            {
+                Interval = 1000 / value;
+            }
+        }
         /// <summary>
         /// An IntPtr that points to address containing the C++ class of the CyberGlove. 
         /// Accessing its methods requires for them to be bridged in VirtualHandBridge.dll
@@ -93,7 +101,6 @@ namespace VirtualHandSharp
         /// <summary>
         /// Gets or sets whether the polling for data is currently enabled.
         /// </summary>
-        /// <author>Arno Sluismans</author>
         public bool Polling { get; private set; }
         #endregion
         #region Events
@@ -160,7 +167,6 @@ namespace VirtualHandSharp
         /// Default constructor; creates all fingers and initiates connection with the CyberGlove. Basically,
         /// after the constructor has been called, this object is ready for use.
         /// </summary>
-        /// <author>Arno Sluismans</author>
         public Hand() : base()
         {
             initConnection();
@@ -168,7 +174,6 @@ namespace VirtualHandSharp
         /// <summary>
         /// Calls the C++ function that deletes the CyberHand object.
         /// </summary>
-        /// <author>Arno Sluismans</author>
         public void Delete()
         {
             // Delete the hand.
@@ -180,7 +185,6 @@ namespace VirtualHandSharp
         /// Can be used to manually request an update of data. This is especially useful if you want
         /// to disable the timer and decide manually when things should be updated.
         /// </summary>
-        /// <author>Arno Sluismans</author>
         public void Update()
         {
             // request an update
@@ -198,7 +202,6 @@ namespace VirtualHandSharp
         /// Sets Polling to true, and (re)starts the pollTimer. If needed, it also creates
         /// a new Timer object to serve as pollTimer.
         /// </summary>
-        /// <author>Arno Sluismans</author>
         public void StartPolling()
         {
             // Tell the application that we are actively polling for data.
@@ -299,7 +302,6 @@ namespace VirtualHandSharp
         /// Requests renewed data from the CyberGlove and populates the finger objects with this
         /// new data.
         /// </summary>
-        /// <author>Arno Sluismans</author>
         protected virtual void pollJointData()
         {
             // Calculate the size of the array.
@@ -309,7 +311,6 @@ namespace VirtualHandSharp
             // Poll() fills arr with data and returns the size of the new array.
             // If that size is not 22, something weird is going on.
             int size = Poll(this.vhtHand, arr, max);
-            StopPolling();
             // Fill the hand with data.
             populate(arr);
             // Update the position.
@@ -336,7 +337,6 @@ namespace VirtualHandSharp
         /// Event handler for the pollTimer's Tick event. It calls pollJointData().
         /// </summary>
         /// <param name="state"></param>
-        /// <author>Arno Sluismans</author>
         protected void pollTimerTick(object state)
         {
             if (Polling)
@@ -356,7 +356,6 @@ namespace VirtualHandSharp
         /// Calls the C++ function that constructs a CyberGlove. It stores the pointer in 
         /// vhtHand, but please be aware that this pointer can not be used as such inside C# code.
         /// </summary>
-        /// <author>Arno Sluismans</author>
         protected void initVhtHand()
         {
             // Call the C++ function that creates a CyberHand and returns the object as a pointer.
@@ -379,7 +378,6 @@ namespace VirtualHandSharp
         /// Creates a new CyberHand object.
         /// </summary>
         /// <returns>Returns a pointer to the newly created object.</returns>
-        /// <author>Arno Sluismans</author>
         [DllImport("VirtualHandBridge.dll")]
         static public extern IntPtr CreateHand();
 
@@ -387,7 +385,6 @@ namespace VirtualHandSharp
         /// Deletes the CyberHand object.
         /// </summary>
         /// <param name="hand">The pointer to the object we need to dispose of.</param>
-        /// <author>Arno Sluismans</author>
         [DllImport("VirtualHandBridge.dll")]
         static public extern void DeleteHand(IntPtr hand);
 

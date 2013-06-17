@@ -36,13 +36,13 @@ namespace VirtualHandSharp.Position
         /// An array that tells how precise each joint should be in calculation of 
         /// matches.
         /// </summary>
-        protected static double[] precision;
+        public static double[] Precision;
         /// <summary>
         /// Static constructor.
         /// </summary>
         static PositionRecord()
         {
-            precision = new double[] {
+            Precision = new double[] {
                 0.4, // 0
                 0.3, // 1
                 0.4, // 2
@@ -76,6 +76,10 @@ namespace VirtualHandSharp.Position
         /// The name of the record.
         /// </summary>
         private string name;
+        /// <summary>
+        /// The matcher that should be used to check whether two positions are similar.
+        /// </summary>
+        private MatchingStrategy matcher = null;
 	    #endregion
 	    #region Properties
         /// <summary>
@@ -84,6 +88,7 @@ namespace VirtualHandSharp.Position
         /// in the calculation of matches.
         /// </summary>
         public bool[] Ignored = new bool[22];
+
         /// <summary>
         /// The name of the record. Will always be upper case.
         /// </summary>
@@ -123,23 +128,17 @@ namespace VirtualHandSharp.Position
         /// <param name="name">The name, which will be saved in upper case.</param>
         public PositionRecord(string name)
         {
+            // Initialise matcher.
+            matcher = new RmsdMatching();
+
             if (name != null)
                 Name = name;
             // Give angles the normal precision.
-            for (int i = 0; i < precision.Length; i++)
+            for (int i = 0; i < Precision.Length; i++)
             {
-                this[i].MaxDiff = precision[i];
+                this[i].MaxDiff = Precision[i];
             }
             Standalone = true;
-        }
-        /// <summary>
-        /// Tells whether a hand's current position is similar to this one.
-        /// </summary>
-        /// <param name="other">The other hand.</param>
-        /// <returns>Whether the other hand is similar to this one.</returns>
-        public bool IsSimilar(HandData other)
-        {
-            return IsSimilar(other, 1.0);
         }
         /// <summary>
         /// Tells whether a hand's current position is similar to this one, with
@@ -148,19 +147,11 @@ namespace VirtualHandSharp.Position
         /// specific implementation.
         /// </summary>
         /// <param name="other">The other hand.</param>
-        /// <param name="precision">The factor by which the default precision should be multiplied.</param>
+        /// <param name="tollerance">The factor by which the default precision should be multiplied.</param>
         /// <returns>Whether the other hand is similar to this one.</returns>
-        public bool IsSimilar(HandData other, double precision)
+        public bool IsSimilar(HandData other, double tollerance = 0)
         {
-            int max = NR_FINGERS * NR_JOINTS + 2;
-            for (int i = 0; i < max; i++)
-            {
-                if (Ignored[i])
-                    continue;
-                else if (!this[i].IsSimilar(other[i], precision))
-                    return false;
-            }
-            return true;
+            return matcher.AreSimilar(this, other, tollerance);
         }
         /// <summary>
         /// Tells whether a hand's current position is similar to this one, with
@@ -169,20 +160,44 @@ namespace VirtualHandSharp.Position
         /// specific implementation.
         /// </summary>
         /// <param name="other">The other handposition.</param>
-        /// <param name="precision">The factor by which the default precision should be multiplied.</param>
+        /// <param name="tollerance">The factor by which the default precision should be multiplied.</param>
         /// <returns>Whether the other hand is similar to this one.</returns>
-        public bool IsSimilar(PositionRecord other, double precision)
+        public bool IsSimilar(PositionRecord other, double tollerance)
         {
             int max = NR_FINGERS * NR_JOINTS + 2;
             for (int i = 0; i < max; i++)
             {
                 if (Ignored[i] || other.Ignored[i])
                     continue;
-                else if (!this[i].IsSimilar(other[i], precision))
+                else if (!this[i].IsSimilar(other[i], tollerance))
                     return false;
             }
             return true;
         }
+
+        /// <summary>
+        /// Populates the data from a CSV line. 
+        /// </summary>
+        /// <param name="csv">The doubles, separated by a symbol.</param>
+        /// <param name="sep">The separator. : by default.</param>
+        public override void Populate(string csv, char sep = ':')
+        {
+            int max = NR_FINGERS * NR_JOINTS + 2;
+            string[] values = csv.Split(sep);
+            if (values.Length != max)
+            {
+                throw new ArgumentException("The CSV needs to contain exactly 22 values.", "csv");
+            }
+            for (int i = 0; i < values.Length; i++)
+            {
+                string v = values[i].Trim();
+                if (v == "*")
+                    this.Ignored[i] = true;
+                else
+                    this[i].Value = Double.Parse(values[i].Trim());
+            }
+        }
+
         /// <summary>
         /// Tells the record that all wrist properties can be ignored.
         /// </summary>
